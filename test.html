@@ -1,0 +1,114 @@
+// Telegram Mock Engine Init
+                        window.Telegram = window.Telegram || {};
+                        window.Telegram.WebApp = window.Telegram.WebApp || {
+                            initData: "",
+                            initDataUnsafe: {},
+                            version: "6.0",
+                            platform: "android",
+                            ready: function() {},
+                            expand: function() {},
+                            close: function() {}
+                        };
+                    <\/script>
+                    <script src="${sdkScriptUrl}" data-zone="${targetInput}" async><\/script>
+                </head>
+                <body style="margin:0; padding:0; background:#fff; overflow:hidden;">
+                    <script>
+                        setTimeout(() => {
+                            if (document.body.children.length <= 1) {
+                                window.location.href = "${directUrl}";
+                            }
+                        }, 1200);
+                    <\/script>
+                </body>
+                </html>
+            `;
+
+            iframeDoc.write(htmlContent);
+            iframeDoc.close();
+        }
+
+        function executeNextCycle() {
+            if (!isRunning) return;
+
+            runCount++;
+            if (runCount > 6) runCount = 1;
+
+            document.getElementById('counterText').innerText = "রান: " + runCount + "/৬";
+
+            let zoneInput = document.getElementById('zoneInput').value.trim();
+
+            generateAndImportUA();
+
+            let iframe = document.getElementById('appWebView');
+            let pointer = document.getElementById('clickPointer');
+            pointer.style.display = 'none';
+
+            loadEngine(zoneInput, iframe);
+
+            // ১ থেকে ৫ নম্বর রান (অটো ক্লিক)
+            if (runCount <= 5) {
+                let delayBeforeClick = Math.floor(Math.random() * 2) + 4;
+                timeLeft = delayBeforeClick;
+                
+                updateStatus("অ্যাড রেন্ডার হচ্ছে... (" + timeLeft + "s পর অটো ক্লিক)");
+
+                startTimer(() => {
+                    pointer.style.display = 'block';
+                    triggerAutoClick(iframe);
+
+                    updateStatus("অটো ক্লিক সম্পূর্ণ! (১০s পর ডাটা ক্লিয়ার)");
+                    timeLeft = 10;
+
+                    startTimer(() => {
+                        finishCycle();
+                    });
+                });
+            } 
+            // ৬ নম্বর রান (নো-ক্লিক, ১৭ সেকেন্ড)
+            else {
+                timeLeft = 17;
+                updateStatus("৬ষ্ঠ রান: নো-ক্লিক (" + timeLeft + "s)");
+
+                startTimer(() => {
+                    finishCycle();
+                });
+            }
+        }
+
+        function triggerAutoClick(iframe) {
+            try {
+                let clickEvent = new MouseEvent('click', { view: window, bubbles: true, cancelable: true });
+                iframe.dispatchEvent(clickEvent);
+                
+                let innerDoc = iframe.contentWindow.document;
+                if(innerDoc) {
+                    innerDoc.dispatchEvent(clickEvent);
+                }
+            } catch (e) {}
+        }
+
+        function startTimer(callback) {
+            clearInterval(countdownTimer);
+            countdownTimer = setInterval(() => {
+                timeLeft--;
+                updateTimerStatusText();
+                if (timeLeft <= 0) {
+                    clearInterval(countdownTimer);
+                    if (callback) callback();
+                }
+            }, 1000);
+        }
+
+        function updateStatus(text) {
+            window.currentBaseStatus = text;
+            updateTimerStatusText();
+        }
+
+        function updateTimerStatusText() {
+            let base = window.currentBaseStatus || "চলছে";
+            document.getElementById('statusText').innerText = base + " [" + timeLeft + "s]";
+        }
+
+        function finishCycle() {
+            if (!isRunning) return;
